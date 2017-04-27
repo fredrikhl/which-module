@@ -27,7 +27,7 @@ optional arguments:
 
 Find a specific module:
 
-````bash
+```bash
 $ whichmodule.py os.path
 /usr/lib/python2.7/posixpath.py
 ```
