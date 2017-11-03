@@ -4,16 +4,16 @@
 
 from __future__ import unicode_literals, print_function, absolute_import
 
+import argparse
+import fnmatch
+import imp
+import importlib
+import inspect
 import os
 import re
 import sys
-import imp
-import inspect
-import importlib
-import fnmatch
-import argparse
 
-__VERSION__ = '1.0'
+__VERSION__ = '1.2.1'
 
 
 def iter_dict(d):
@@ -34,16 +34,27 @@ def get_suffix_data(filename):
 
 def get_paths():
     """ Gets a list of module paths, in search order. """
-    paths = filter(os.path.isdir,
-                   map(os.path.normcase,
-                       map(os.path.abspath,
-                           sys.path[:])))
-    return paths
+    return filter(os.path.isdir,
+                  map(os.path.normcase,
+                      map(os.path.abspath, sys.path[:])))
 
 
 def get_modules(path):
-    """ Gets a list of modules at a given path. """
+    """ Gets a list of modules at a given path.
+
+    :param str path:
+        A directory to look up modules in.
+
+    :returns dict:
+        Returns a dictionary with modules in the given 'path'. The dictionary
+        will contain items (<module>, <filename>), i.e. where the keys are
+        module names from the path, and the values are the absolute path to the
+        module file.
+
+    """
     modules = {}
+    module_name_re = re.compile(r'^[a-z_]\w*$', re.I)
+
     for basename in os.listdir(path):
         filename = os.path.join(path, basename)
         if os.path.isfile(filename):
@@ -51,7 +62,7 @@ def get_modules(path):
             suffix_data = get_suffix_data(filename)
             if not suffix_data:
                 continue
-            if re.compile("(?i)[a-z_]\w*$").match(module):
+            if module_name_re.match(module):
                 #   if suffix_data[2] == imp.C_EXTENSION:
                 #       # check that this extension can be imported
                 #       try:
@@ -87,9 +98,9 @@ def join_modules(*module_dicts):
     """ Joins multiple module dicts that *may* contain conflicting names.
 
     The argument order dictates which modules will be filtered out. If the
-    first dictionary contains a module 'foo', then no module 'foo' or module
-    from a sub-package 'foo' from later dictionaries will be included in the
-    result.
+    first dictionary contains a package or module 'foo', then no module 'foo'
+    or module from a package 'foo' from later dictionaries will be included in
+    the result.
 
     >>> _join_modules({'foo': '...', }, {'foo.bar': '...', 'baz': '...'})
     {'foo': '...', 'baz': '...'}
@@ -122,6 +133,12 @@ def join_modules(*module_dicts):
 
 
 def get_module_file(module_name):
+    """ Get the path to the source file for a given module. """
+    # We could use other parts of the import system here to avoid actually
+    # importing the file, but that's a bit messy to do for both PY2 and PY3.
+    #
+    # This solution is simple and gives us reasonally good support for python
+    # version.
     module = importlib.import_module(module_name)
     return inspect.getsourcefile(module)
 
@@ -176,16 +193,18 @@ class ListModulesAction(argparse.Action):
     default_metavar = 'GLOB'
 
     def __init__(self, option_strings, dest,
-                 metavar=default_metavar,
-                 help=default_help):
+                 type=None,
+                 help=default_help,
+                 metavar=default_metavar):
         super(ListModulesAction, self).__init__(
             option_strings=option_strings,
             dest=argparse.SUPPRESS,
-            default=argparse.SUPPRESS,
-            const='*',
-            metavar=metavar,
             nargs='?',
-            help=help)
+            const='*',
+            default=argparse.SUPPRESS,
+            type=type,
+            help=help,
+            metavar=metavar)
 
     def __call__(self, parser, ns, opt_value, option_string=None):
         regex = re.compile(fnmatch.translate(opt_value))
@@ -193,7 +212,7 @@ class ListModulesAction(argparse.Action):
                    for k, v in iter_dict(_list_modules())
                    if regex.match(k)}
 
-        print("Modules matching: '{!s}'".format(regex.pattern))
+        print('Modules matching:', regex.pattern)
         depth = 0
         if opt_value != '*':
             depth = -1
@@ -201,7 +220,7 @@ class ListModulesAction(argparse.Action):
         parser.exit()
 
 
-def main(args=None):
+def make_parser():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         'module',
@@ -209,8 +228,11 @@ def main(args=None):
     parser.add_argument(
         '-l', '--list',
         action=ListModulesAction)
-    args = parser.parse_args(args)
+    return parser
 
+
+def main(inargs=None):
+    args = make_parser().parse_args(inargs)
     print(get_module_file(args.module))
 
 
