@@ -16,6 +16,14 @@ import argparse
 __VERSION__ = '1.0'
 
 
+def iter_dict(d):
+    # PY2/3 compat
+    try:
+        return d.iteritems()
+    except AttributeError:
+        return d.items()
+
+
 def get_suffix_data(filename):
     """ Fetches suffix data from the `filename` suffix. """
     for suffix in imp.get_suffixes():
@@ -136,7 +144,7 @@ def _list_modules():
 def _print_modules(modules, max_modules=0, max_depth=-1):
     # If depth, filter by number of parent packages
     if max_depth >= 0:
-        modules = {k: v for k, v in modules.iteritems()
+        modules = {k: v for k, v in iter_dict(modules)
                    if len(k.split('.')) <= max_depth + 1}
 
     # If no max_modules, include all modules
@@ -182,7 +190,7 @@ class ListModulesAction(argparse.Action):
     def __call__(self, parser, ns, opt_value, option_string=None):
         regex = re.compile(fnmatch.translate(opt_value))
         modules = {k: v
-                   for k, v in _list_modules().iteritems()
+                   for k, v in iter_dict(_list_modules())
                    if regex.match(k)}
 
         print("Modules matching: '{!s}'".format(regex.pattern))
