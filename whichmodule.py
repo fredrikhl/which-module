@@ -13,7 +13,8 @@ import os
 import re
 import sys
 
-__VERSION__ = '1.2.1'
+
+__version__ = '1.2.1'
 
 
 def iter_dict(d):
