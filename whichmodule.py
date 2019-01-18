@@ -221,7 +221,7 @@ class ListModulesAction(argparse.Action):
         parser.exit()
 
 
-def make_parser():
+def main(inargs=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         'module',
@@ -229,11 +229,8 @@ def make_parser():
     parser.add_argument(
         '-l', '--list',
         action=ListModulesAction)
-    return parser
 
-
-def main(inargs=None):
-    args = make_parser().parse_args(inargs)
+    args = parser.parse_args(inargs)
     print(get_module_file(args.module))
 
 
