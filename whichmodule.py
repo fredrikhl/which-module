@@ -221,17 +221,44 @@ class ListModulesAction(argparse.Action):
         parser.exit()
 
 
+def edit(filename):
+    """ Launch editor with file. """
+    import subprocess
+
+    editor = os.environ.get('EDITOR')
+    if not editor:
+        raise Exception(
+            "Could not edit %r: No EDITOR environment variable set" %
+            filename)
+
+    try:
+        subprocess.call([editor, filename])
+    except OSError, e:
+        raise Exception(
+            "Could not edit %r (editor: %r): %s" %
+            (filename, editor, e))
+
+
 def main(inargs=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         'module',
         help="Name of a module to look up")
     parser.add_argument(
+        '-e', '--edit',
+        action='store_true',
+        default=False,
+        help="Open the found module with $EDITOR")
+    parser.add_argument(
         '-l', '--list',
         action=ListModulesAction)
 
     args = parser.parse_args(inargs)
-    print(get_module_file(args.module))
+
+    filename = get_module_file(args.module)
+    print(filename)
+    if args.edit:
+        edit(filename)
 
 
 if __name__ == '__main__':
