@@ -14,7 +14,7 @@ import re
 import sys
 
 
-__version__ = '1.3.0'
+__version__ = '1.3.1'
 
 
 def iter_dict(d):
@@ -233,7 +233,7 @@ def edit(filename):
 
     try:
         subprocess.call([editor, filename])
-    except OSError, e:
+    except OSError as e:
         raise Exception(
             "Could not edit %r (editor: %r): %s" %
             (filename, editor, e))
